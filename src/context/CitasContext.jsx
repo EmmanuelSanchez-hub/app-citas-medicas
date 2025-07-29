@@ -1,4 +1,6 @@
 import { createContext, useState, useEffect } from "react";
+import { db } from "../firebase/config";
+import {collection, addDoc, updateDoc, doc, onSnapshot, query, orderBy } from "firebase/firestore";
 
 export const CitasContext = createContext();
 
@@ -6,47 +8,68 @@ export function CitasProvider({ children }) {
   const [citas, setCitas] = useState([]);
   const [cuposMaximos] = useState(10);
 
-  // Cargar citas de localStorage
   useEffect(() => {
-    const guardadas = localStorage.getItem("citas");
-    if (guardadas) setCitas(JSON.parse(guardadas));
+    // Escucha en tiempo real todos los cambios en la colección "citas"
+    const q = query(collection(db, "citas"), orderBy("fecha", "asc"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+      setCitas(data);
+    });
+
+    return () => unsubscribe();
   }, []);
 
-  // Guardar citas en localStorage
-  useEffect(() => {
-    localStorage.setItem("citas", JSON.stringify(citas));
-  }, [citas]);
-
-  const addCita = (nueva) => {
-    const newId = citas.length ? Math.max(...citas.map(c => c.id)) + 1 : 1;
-    const cita = { ...nueva, id: newId, estado: "confirmada" };
-    setCitas((prev) => [...prev, cita]);
+  // Agregar una nueva cita
+  const addCita = async (nueva) => {
+    try {
+      const nuevaCita = { ...nueva, estado: nueva.estado || "confirmada" };
+      await addDoc(collection(db, "citas"), nuevaCita);
+    } catch (error) {
+      console.error("Error al agregar cita:", error);
+    }
   };
 
-  const solicitarReprogramacion = (id, nuevaFecha, nuevaHora) => {
-    setCitas((prev) =>
-      prev.map((c) =>
-        c.id === id
-          ? { ...c, estado: "solicitud_reprogramacion", fecha: nuevaFecha, hora: nuevaHora }
-          : c
-      )
-    );
+  // Solicitar reprogramación
+  const solicitarReprogramacion = async (id, nuevaFecha, nuevaHora) => {
+    try {
+      const ref = doc(db, "citas", id);
+      await updateDoc(ref, {
+        estado: "solicitud_reprogramacion",
+        fecha: nuevaFecha,
+        hora: nuevaHora,
+      });
+    } catch (error) {
+      console.error("Error al solicitar reprogramación:", error);
+    }
   };
 
-  const aprobarReprogramacion = (id) => {
-    setCitas((prev) =>
-      prev.map((c) =>
-        c.id === id ? { ...c, estado: "confirmada" } : c
-      )
-    );
+  // Aprobar reprogramación
+  const aprobarReprogramacion = async (id) => {
+    try {
+      const ref = doc(db, "citas", id);
+      await updateDoc(ref, { estado: "confirmada" });
+    } catch (error) {
+      console.error("Error al aprobar reprogramación:", error);
+    }
   };
 
-  const rechazarReprogramacion = (id) => {
-    setCitas((prev) =>
-      prev.map((c) =>
-        c.id === id ? { ...c, estado: "confirmada" } : c
-      )
-    );
+  // Rechazar reprogramación
+  const rechazarReprogramacion = async (id) => {
+    try {
+      const ref = doc(db, "citas", id);
+      await updateDoc(ref, { estado: "confirmada" });
+    } catch (error) {
+      console.error("Error al rechazar reprogramación:", error);
+    }
+  };
+
+  const confirmarCita = async (id) => {
+    try {
+      const citaRef = doc(db, "citas", id);
+      await updateDoc(citaRef, { estado: "confirmada" });
+    } catch (error) {
+      console.error("Error al confirmar cita:", error);
+    }
   };
 
   return (
@@ -55,6 +78,7 @@ export function CitasProvider({ children }) {
         citas,
         cuposMaximos,
         addCita,
+        confirmarCita,
         solicitarReprogramacion,
         aprobarReprogramacion,
         rechazarReprogramacion,

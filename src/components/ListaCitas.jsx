@@ -1,21 +1,23 @@
-import React from "react";
+import React, { useState } from "react";
 import { useCitas } from "../hooks/useCitas";
+import ReprogramarCita from "./ReprogramarCita";
 
 export default function ListaCitas({ citas }) {
+  const [citaSeleccionada, setCitaSeleccionada] = useState(null);
   const { solicitarReprogramacion } = useCitas();
-
-  const handleReprogramar = (id) => {
-    const nuevaFecha = prompt("Nueva fecha (YYYY-MM-DD):");
-    const nuevaHora = prompt("Nueva hora (HH:MM):");
-    if (nuevaFecha && nuevaHora) {
-      solicitarReprogramacion(id, nuevaFecha, nuevaHora);
-      alert("Solicitud de reprogramación enviada.");
-    }
-  };
 
   if (!citas || citas.length === 0) {
     return <p>No hay citas para mostrar.</p>;
   }
+
+  // Función para calcular hora fin sumando 30 minutos
+  const calcularHoraFin = (horaInicio) => {
+    const [h, m] = horaInicio.split(":").map(Number);
+    const totalMin = h * 60 + m + 30; // suma 30 minutos
+    const horasFin = Math.floor(totalMin / 60);
+    const minutosFin = totalMin % 60;
+    return `${String(horasFin).padStart(2, "0")}:${String(minutosFin).padStart(2, "0")}`;
+  };
 
   return (
     <div className="citas-grid">
@@ -26,18 +28,25 @@ export default function ListaCitas({ citas }) {
 
             {/* Información de contacto */}
             <div className="cita-contacto" style={{ marginBottom: "0.5rem" }}>
-              <div>📞 <strong>Teléfono:</strong> {cita.telefono}</div>
+              <div>
+                📞 <strong>Teléfono:</strong> {cita.telefono}
+              </div>
               {cita.email && (
-                <div>📧 <strong>Email:</strong> {cita.email}</div>
+                <div>
+                  📧 <strong>Email:</strong> {cita.email}
+                </div>
               )}
             </div>
 
             <div className="cita-meta">
               <span className="cita-fecha">📅 {cita.fecha}</span>
-              <span className="cita-hora">⏰ {cita.hora}</span>
+              <span className="cita-hora">
+                ⏰ {cita.hora} - {calcularHoraFin(cita.hora)}
+              </span>
               <span className="cita-estado">
                 {cita.estado === "confirmada" && "✅ Confirmada"}
-                {cita.estado === "solicitud_reprogramacion" && "🟡 Pendiente de aprobación"}
+                {cita.estado === "solicitud_reprogramacion" &&
+                  "🟡 Pendiente de aprobación"}
                 {cita.estado === "pendiente" && "⏳ Pendiente"}
               </span>
             </div>
@@ -51,7 +60,7 @@ export default function ListaCitas({ citas }) {
             <div className="cita-actions">
               <button
                 className="secondary-button"
-                onClick={() => handleReprogramar(cita.id)}
+                onClick={() => setCitaSeleccionada(cita)}
               >
                 Reprogramar
               </button>
@@ -59,6 +68,18 @@ export default function ListaCitas({ citas }) {
           </div>
         </div>
       ))}
+
+      {/* Modal para reprogramación */}
+      {citaSeleccionada && (
+        <div className="modal">
+          <div className="modal-content">
+            <ReprogramarCita
+              cita={citaSeleccionada}
+              onClose={() => setCitaSeleccionada(null)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

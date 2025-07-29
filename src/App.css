@@ -851,14 +851,14 @@ body {
 
 /* Día seleccionado (incluye si es también el actual) */
 .calendar-container .react-calendar__tile--active {
-  background: #3b82f6 !important; /* Azul sólido */
+  background: #3b82f6 !important;
   color: white !important;
   border-radius: 8px;
 }
 
 /* Días fuera del mes */
 .calendar-container .react-calendar__month-view__days__day--neighboringMonth {
-  color: #94a3b8; /* gris tenue */
+  color: #94a3b8;
 }
 
 
@@ -900,6 +900,31 @@ body {
   display: flex;
   justify-content: flex-end;
 }
+
+/* Contenedor de filtros en la página de citas */
+.filtros-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.filtro-item {
+  flex: 1;
+}
+
+.filtro-nombre {
+  max-width: 400px;
+}
+
+.filtro-mes {
+  max-width: 200px;
+  display: flex;
+  justify-content: flex-end;
+}
+
 
 /* Responsive */
 @media (max-width: 768px) {

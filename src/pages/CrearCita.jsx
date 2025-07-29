@@ -1,17 +1,19 @@
 import React, { useState, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useCitas } from "../hooks/useCitas";
 
 export default function CrearCita() {
   const navigate = useNavigate();
-  const { addCita } = useCitas();
+  const location = useLocation();
+  const fechaInicial = location.state?.fecha || "";
+  const { addCita, citas } = useCitas();
   const nombreRef = useRef(null);
 
   const [formData, setFormData] = useState({
     paciente: "",
     telefono: "",
     email: "",
-    fecha: "",
+    fecha: fechaInicial,
     hora: "",
     motivo: "",
   });
@@ -51,11 +53,30 @@ export default function CrearCita() {
 
     if (!validateForm()) return;
 
+    // Validación de conflicto (±30 min)
+    const nuevaFecha = formData.fecha;
+    const [h, m] = formData.hora.split(":").map(Number);
+    const nuevaHoraMinutos = h * 60 + m;
+
+    const conflicto = citas.some((cita) => {
+      if (cita.fecha !== nuevaFecha) return false;
+      const [hc, mc] = cita.hora.split(":").map(Number);
+      const citaMinutos = hc * 60 + mc;
+      const diff = Math.abs(nuevaHoraMinutos - citaMinutos);
+      return diff < 30;
+    });
+
+    if (conflicto) {
+      alert("Ya existe una cita en esa fecha y hora (dentro de 30 minutos).");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
+      // Estado de la cita: pendiente para confirmación
       addCita({
         paciente: formData.paciente,
         telefono: formData.telefono,
@@ -63,10 +84,11 @@ export default function CrearCita() {
         fecha: formData.fecha,
         hora: formData.hora,
         motivo: formData.motivo,
+        estado: "pendiente",
       });
 
-      alert("Cita creada exitosamente 🎉");
-      navigate("/mis-citas");
+      alert("Cita registrada. Esperando confirmación del doctor.");
+      navigate("/citas");
     } catch {
       alert("Hubo un error al crear la cita.");
     } finally {
@@ -101,7 +123,9 @@ export default function CrearCita() {
               className={`form-input ${errors.paciente ? "error" : ""}`}
               placeholder="Ej. Juan Pérez"
             />
-            {errors.paciente && <span className="error-message">{errors.paciente}</span>}
+            {errors.paciente && (
+              <span className="error-message">{errors.paciente}</span>
+            )}
           </div>
 
           <div className="form-group">
@@ -117,7 +141,9 @@ export default function CrearCita() {
               className={`form-input ${errors.telefono ? "error" : ""}`}
               placeholder="Ej. 987654321"
             />
-            {errors.telefono && <span className="error-message">{errors.telefono}</span>}
+            {errors.telefono && (
+              <span className="error-message">{errors.telefono}</span>
+            )}
           </div>
 
           <div className="form-group">
@@ -148,7 +174,9 @@ export default function CrearCita() {
                 onChange={handleChange}
                 className={`form-input ${errors.fecha ? "error" : ""}`}
               />
-              {errors.fecha && <span className="error-message">{errors.fecha}</span>}
+              {errors.fecha && (
+                <span className="error-message">{errors.fecha}</span>
+              )}
             </div>
 
             <div className="form-group">
@@ -163,7 +191,9 @@ export default function CrearCita() {
                 onChange={handleChange}
                 className={`form-input ${errors.hora ? "error" : ""}`}
               />
-              {errors.hora && <span className="error-message">{errors.hora}</span>}
+              {errors.hora && (
+                <span className="error-message">{errors.hora}</span>
+              )}
             </div>
           </div>
 
@@ -180,7 +210,9 @@ export default function CrearCita() {
               className={`form-textarea ${errors.motivo ? "error" : ""}`}
               placeholder="Ej. Limpieza dental"
             />
-            {errors.motivo && <span className="error-message">{errors.motivo}</span>}
+            {errors.motivo && (
+              <span className="error-message">{errors.motivo}</span>
+            )}
           </div>
         </div>
 
